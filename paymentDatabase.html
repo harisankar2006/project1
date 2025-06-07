@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Database with Animation</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #808080;
+        }
+
+        .content {
+            width: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            animation: bubbleAnimation 6s infinite ease-in-out;
+        }
+
+        .day-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(255, 254, 254, 0.208);
+            position: relative;
+            z-index: 1;
+        }
+
+        .day-table caption {
+            font-size: 1.8em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .day-table th, .day-table td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .day-table th {
+            background-color: #2196F3;
+            color: white;
+        }
+
+        .day-table td {
+            background-color: #f9f9f9;
+        }
+
+        .highlight-total {
+            background-color: #d4edda;
+            font-weight: bold;
+        }
+
+        @keyframes bubbleAnimation {
+            0% { transform: scale(1); opacity: 0.5; }
+            25% { transform: scale(1.05); opacity: 0.7; }
+            50% { transform: scale(1); opacity: 0.9; }
+            75% { transform: scale(1.05); opacity: 0.7; }
+            100% { transform: scale(1); opacity: 0.5; }
+        }
+
+        .bubble {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #FF5733;
+            border-radius: 50%;
+            animation: bubbleEffect 3s infinite;
+        }
+
+        .bubble:nth-child(2) { animation-delay: 1s; background-color: #33FF57; }
+        .bubble:nth-child(3) { animation-delay: 2s; background-color: #3357FF; }
+        .bubble:nth-child(4) { animation-delay: 1.5s; background-color: #FF33A1; }
+
+        @keyframes bubbleEffect {
+            0% { top: 0; left: 0; opacity: 0; }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+            100% { top: 100%; left: 100%; opacity: 0; transform: translate(-50%, -50%) scale(0); }
+        }
+
+        button {
+            padding: 10px;
+            margin: 10px 0;
+            cursor: pointer;
+            font-size: 1rem;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #1976D2;
+        }
+
+        #chartContainer {
+            display: none;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+
+        .chart {
+            margin: 20px;
+            width: 400px;
+        }
+
+        .search-bar {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-bar input {
+            padding: 8px;
+            margin-bottom: 5px;
+            font-size: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .search-bar button {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+
+    
+    <div class="box">
+        <div class="login">
+            <div class="loginBx"></div>
+                <aside>
+                    <button id="backBtn" onclick="goBack()" style="width: 1cm;">←</button><br>
+                    <h2>
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                          Payment Database
+                        <i class="fa-solid fa-heart"></i>
+                    </h2>
+                    <hr>
+                    
+                    <div class="search-bar">
+                        <input type="text" id="searchDate" placeholder="Enter Date (dd/m/yyyy)">
+                        <button onclick="searchDate()">🔎 Search</button>
+                    </div>
+            
+                    <div class="bottom-buttons">
+                        <button id="viewDataBtn" onclick="viewData()">📊 View Data</button><br>
+                        <button id="resetBtn" onclick="resetAllData()">♻️  Reset</button>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </div>
+    <div class="content">
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+        <div class="bubble"></div>
+
+        <div id="dailyTables"></div>
+
+        <div id="chartContainer">
+            <div class="chart">
+                <canvas id="barChart"></canvas>
+            </div>
+            <div class="chart">
+                <canvas id="pieChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function generateTable(date) {
+            const dailyTablesContainer = document.getElementById('dailyTables');
+            dailyTablesContainer.innerHTML = '';
+
+            const table = document.createElement('table');
+            table.classList.add('day-table');
+            table.innerHTML = `
+                <caption>Payments for ${date}</caption>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Boarding Point</th>
+                        <th>Number of Tickets</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="day-${date}"></tbody>
+            `;
+
+            dailyTablesContainer.appendChild(table);
+
+            populateDataForDate(date);
+        }
+
+        function populateDataForDate(date) {
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            const tableBody = document.getElementById(`day-${date}`);
+
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            const filteredPayments = payments.filter(payment => payment.date.split(' ')[0] === date);
+
+            let totalAmount = 0;
+
+            if (filteredPayments.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" style="text-align:center;">No Data Available</td>`;
+                tableBody.appendChild(row);
+            } else {
+                filteredPayments.forEach(payment => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${payment.date}</td>
+                        <td>${payment.time}</td>
+                        <td>${payment.boardingPoint}</td>
+                        <td>${payment.ticketCount}</td>
+                        <td>₹${payment.amount}</td>
+                    `;
+                    tableBody.appendChild(row);
+
+                    totalAmount += parseFloat(payment.amount);
+                });
+
+                const totalRow = document.createElement('tr');
+                totalRow.classList.add('highlight-total');
+                totalRow.innerHTML = `
+                    <td colspan="4" style="text-align: right;">Total Amount Paid:</td>
+                    <td>₹${totalAmount.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(totalRow);
+            }
+        }
+
+        function searchDate() {
+            const dateInput = document.getElementById('searchDate').value.trim();
+            if (dateInput !== "") {
+                generateTable(dateInput);
+            } else {
+                alert("Please enter a date in the format dd/m/yyyy!");
+            }
+        }
+
+        function resetAllData() {
+            const password = prompt("Enter password to reset all data:");
+            if (password === "2006") {
+                localStorage.removeItem('payments');
+                document.getElementById('dailyTables').innerHTML = '';
+                alert("All data has been reset!");
+            } else {
+                alert("Incorrect password. Data not reset.");
+            }
+        }
+
+        function goBack() {
+            window.location.href = "boardingPage.html"; 
+        }
+
+        function viewData() {
+            const payments = JSON.parse(localStorage.getItem('payments')) || [];
+            if (payments.length > 0) {
+                const boardingPoints = [...new Set(payments.map(payment => payment.boardingPoint))];
+                const ticketsPerBoardingPoint = boardingPoints.map(boardingPoint => {
+                    return payments.filter(payment => payment.boardingPoint === boardingPoint)
+                                   .reduce((sum, payment) => sum + payment.ticketCount, 0);
+                });
+
+                document.getElementById("chartContainer").style.display = "flex";
+
+                const barChartContext = document.getElementById("barChart").getContext("2d");
+                new Chart(barChartContext, {
+                    type: "bar",
+                    data: {
+                        labels: boardingPoints,
+                        datasets: [{
+                            label: "Number of Tickets Collected",
+                            data: ticketsPerBoardingPoint,
+                            backgroundColor: '#42a5f5',
+                            borderColor: '#1e88e5',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Bar Chart - Number of Tickets Collected per Boarding Point'
+                            },
+                            legend: {
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+
+                const pieChartContext = document.getElementById("pieChart").getContext("2d");
+                new Chart(pieChartContext, {
+                    type: "pie",
+                    data: {
+                        labels: boardingPoints,
+                        datasets: [{
+                            label: "Tickets Distribution",
+                            data: ticketsPerBoardingPoint,
+                            backgroundColor: ['#FF5733', '#33FF57', '#3357FF', '#FF33A1'],
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Pie Chart - Tickets Distribution per Boarding Point'
+                            },
+                            legend: {
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+            } else {
+                alert("No data available.");
+            }
+        }
+
+        window.onload = function() {
+            const today = new Date();
+            const day = today.getDate();
+            const month = today.getMonth() + 1;
+            const year = today.getFullYear();
+            const formattedToday = `${day}/${month}/${year}`;
+            generateTable(formattedToday);
+        }
+    </script>
+</body>
+</html>

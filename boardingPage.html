@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Boarding Point Selection</title>
+  <link rel="icon" href="bus2.png">
+  <style>
+    /* Fullscreen Video Background */
+    #bgVideo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: -1;
+    }
+
+    /* Base Page Styles */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Login Button */
+    #loginBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      background-color: #4caf50;
+      color: white;
+      font-weight: bold;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    #loginBtn:hover {
+      background-color: #45a049;
+    }
+
+    /* Boarding Form Container */
+    #boarding-container {
+      text-align: center;
+      padding-top: 100px;
+      z-index: 5;
+      position: relative;
+      color: white;
+      text-shadow: 1px 1px 3px black;
+    }
+
+    select, input[type="number"], button {
+      margin: 10px;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    select, input[type="number"], button {
+      background-color: rgba(255, 255, 255, 0.9);
+      border: none;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 🔁 Background Video (replace path if needed) -->
+  <video autoplay muted loop id="bgVideo">
+    <source src="WhatsApp Video 2025-05-01 at 09.34.36_58a46f09.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+
+  <!-- ✅ Login Button -->
+  <button id="loginBtn" onclick="openPaymentDatabasePage()">Login Database</button>
+  <button style="background-color: #45a049; color:white;" onclick="window.location.href='index.html'">Login page</button>
+
+  <!-- ✅ Form Section -->
+  <div id="boarding-container">
+    <h1>Boarding Point Selection</h1>
+
+    <label for="boardingPoint">Select Boarding Point:</label><br>
+    <select id="boardingPoint"></select><br><br>
+
+    <label for="ticketCount">Number of Tickets:</label><br>
+    <input type="number" id="ticketCount" value="1" min="1"><br><br>
+
+    <button onclick="clearForm()">Clear</button>
+    <button onclick="generateQRCode()">Continue</button>
+  </div>
+
+  <!-- ✅ Script Logic -->
+  <script>
+    const boardPoints = JSON.parse(localStorage.getItem('boardPoints'));
+    const userUpiId = localStorage.getItem('upiId');
+
+    function populateBoardingPoints() {
+      const select = document.getElementById('boardingPoint');
+      if (!boardPoints) return;
+      boardPoints.forEach((bp, index) => {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = `${bp.name} (₹${bp.amount})`;
+        select.appendChild(option);
+      });
+    }
+
+    window.onload = populateBoardingPoints;
+
+    function clearForm() {
+      document.getElementById('boardingPoint').selectedIndex = 0;
+      document.getElementById('ticketCount').value = 1;
+    }
+
+    function generateQRCode() {
+      const selectedIndex = document.getElementById('boardingPoint').value;
+      const ticketCount = document.getElementById('ticketCount').value;
+
+      if (selectedIndex === '' || ticketCount <= 0) {
+        alert('Please select a boarding point and number of tickets.');
+        return;
+      }
+
+      const selectedBoardPoint = boardPoints[selectedIndex];
+      const totalAmount = selectedBoardPoint.amount * ticketCount;
+      const upiUrl = `upi://pay?pa=${userUpiId}&pn=BusTicket&am=${totalAmount}&cu=INR&tn=Boarding:${selectedBoardPoint.name}`;
+
+      savePaymentData(selectedBoardPoint.name, ticketCount, totalAmount);
+      window.location.href = `qrPage.html?data=${encodeURIComponent(upiUrl)}`;
+    }
+
+    function savePaymentData(boardingPoint, ticketCount, amount) {
+      const dateTime = new Date();
+      const paymentData = {
+        date: dateTime.toLocaleDateString(),
+        time: dateTime.toLocaleTimeString(),
+        boardingPoint: boardingPoint,
+        ticketCount: ticketCount,
+        amount: amount
+      };
+
+      let payments = JSON.parse(localStorage.getItem('payments')) || [];
+      payments.push(paymentData);
+      localStorage.setItem('payments', JSON.stringify(payments));
+    }
+
+    function openPaymentDatabasePage() {
+      const password = prompt("Enter password to database:");
+            if (password === "2006") {
+              window.location.href = "paymentDatabase.html";
+            }
+    }
+  </script>
+
+</body>
+</html>

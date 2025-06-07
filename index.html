@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bus Ticket Setup</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="bus2.png">
+</head>
+<body>
+    <div id="setup-container">
+        <h1 style="color: aqua;">Bus Ticket Setup</h1>
+
+        <div class="box">
+            <div class="login">
+                <div class="loginBx">
+                    <h2>
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                          Login
+                        <i class="fa-solid fa-heart"></i>
+                    </h2>
+                    <div id="form-area">
+                        <input type="text" id="upiId" placeholder="Enter your UPI ID" required><br><br>
+                        <input type="number" id="boardPointCount" placeholder="Number of Boarding Points" min="1" required><br><br>
+                        <div class="group">
+                        <button onclick="createBoardPointInputs()">Save and Continue</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let boardPoints = []; // To store boarding points and amounts
+        let userUpiId = ""; // To store entered UPI ID
+
+        function createBoardPointInputs() {
+            userUpiId = document.getElementById('upiId').value.trim();
+            const boardPointCount = parseInt(document.getElementById('boardPointCount').value);
+
+            if (!userUpiId || boardPointCount <= 0) {
+                alert('Please enter a valid UPI ID and number of boarding points.');
+                return;
+            }
+
+            boardPoints = [];
+
+            // Get boarding point names and amounts
+            for (let i = 0; i < boardPointCount; i++) {
+                const name = prompt(`Enter name for Board Point ${i + 1}`);
+                const amount = prompt(`Enter fixed amount for ${name}`);
+
+                if (!name || !amount || isNaN(amount)) {
+                    alert('Invalid input. Please enter correct name and amount.');
+                    return;
+                }
+
+                boardPoints.push({ name, amount: parseInt(amount) });
+            }
+
+            // Pass the boarding points and UPI ID to the next page
+            localStorage.setItem('boardPoints', JSON.stringify(boardPoints));
+            localStorage.setItem('upiId', userUpiId);
+
+            // Redirect to the boarding page
+            window.location.href = "boardingPage.html";
+        }
+    </script>
+</body>
+</html>
